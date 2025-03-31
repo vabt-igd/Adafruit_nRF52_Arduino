@@ -6,9 +6,9 @@ menu.lbm_custom=Customize LoRaWAN modem
 menu.power_supply_grove=Grove power supply
 
 # -----------------------------------
-# Seeed Tracker T10000 E LoRaWAN
+# Seeed Tracker T1000 E LoRaWAN
 # -----------------------------------
-tracker_t1000_e_lorawan.name=Seeed Tracker T10000 E LoRaWAN
+tracker_t1000_e_lorawan.name=Seeed Tracker T1000 E LoRaWAN
 
 # Upload
 tracker_t1000_e_lorawan.bootloader.tool=bootburn
