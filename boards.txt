@@ -271,7 +271,7 @@ xiaonRF52840Plus.build.usb_product="XIAO nRF52840 Plus"
 xiaonRF52840Plus.build.extra_flags=-DNRF52840_XXAA {build.flags.usb}
 xiaonRF52840Plus.build.ldscript=nrf52840_s140_v7.ld
 xiaonRF52840Plus.build.vid=0x2886
-xiaonRF52840Plus.build.pid=0x8044
+xiaonRF52840Plus.build.pid=0x8064
 
 # SofDevice Menu
 xiaonRF52840Plus.menu.softdevice.s140v6=S140 7.3.0
@@ -325,7 +325,7 @@ xiaonRF52840SensePlus.build.usb_product="XIAO nRF52840 Sense Plus"
 xiaonRF52840SensePlus.build.extra_flags=-DNRF52840_XXAA {build.flags.usb}
 xiaonRF52840SensePlus.build.ldscript=nrf52840_s140_v7.ld
 xiaonRF52840SensePlus.build.vid=0x2886
-xiaonRF52840SensePlus.build.pid=0x8044
+xiaonRF52840SensePlus.build.pid=0x8065
 
 # SofDevice Menu
 xiaonRF52840SensePlus.menu.softdevice.s140v6=S140 7.3.0
