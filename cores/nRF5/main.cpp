@@ -149,7 +149,7 @@ extern "C"
 
 // nanolib printf() retarget
 // Logger 0: Serial (CDC), 1 Serial1 (UART), 2 Segger RTT
-int _write (int fd, const void *buf, size_t count)
+int __attribute__((weak)) _write (int fd, const void *buf, size_t count)
 {
   (void) fd;
 
