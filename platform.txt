@@ -16,8 +16,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-name=Seeed nRF52 Boards
-version=1.1.12
+name=Adafruit and Seeed nRF52 Boards
+version=1.7.0
 
 # Compile variables
 # -----------------
@@ -49,7 +49,7 @@ compiler.elf2bin.flags=-O binary
 compiler.elf2bin.cmd=arm-none-eabi-objcopy
 compiler.elf2hex.flags=-O ihex
 compiler.elf2hex.cmd=arm-none-eabi-objcopy
-compiler.ldflags=-mcpu={build.mcu} -mthumb {build.float_flags} -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-section-align -Wl,--wrap=malloc -Wl,--wrap=free --specs=nano.specs --specs=nosys.specs
+compiler.ldflags=-mcpu={build.mcu} -mthumb {build.float_flags} -Wl,--cref -Wl,--check-sections -Wl,--gc-sections -Wl,--unresolved-symbols=report-all -Wl,--warn-common -Wl,--warn-section-align -Wl,--wrap=malloc -Wl,--wrap=free -Wl,--wrap=realloc -Wl,--wrap=calloc --specs=nano.specs --specs=nosys.specs
 compiler.size.cmd=arm-none-eabi-size
 
 # this can be overriden in boards.txt
@@ -106,11 +106,15 @@ recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" "-L{build.path}" 
 recipe.objcopy.hex.pattern="{compiler.path}{compiler.elf2hex.cmd}" {compiler.elf2hex.flags} {compiler.elf2hex.extra_flags} "{build.path}/{build.project_name}.elf" "{build.path}/{build.project_name}.hex"
 
 ## Create dfu package zip file
-recipe.objcopy.zip.pattern="{tools.nrfutil.cmd}" dfu genpkg --dev-type 0x0052 --sd-req {build.sd_fwid} --application "{build.path}/{build.project_name}.hex" "{build.path}/{build.project_name}.zip"
+recipe.objcopy.zip.args=dfu genpkg --dev-type 0x0052 --sd-req {build.sd_fwid} --application "{build.path}/{build.project_name}.hex" "{build.path}/{build.project_name}.zip"
+recipe.objcopy.zip.pattern="{tools.nrfutil.cmd}" {recipe.objcopy.zip.args}
+recipe.objcopy.zip.pattern.macosx=env LANG=C.UTF-8 LC_ALL=C.UTF-8 "{tools.nrfutil.cmd}" {recipe.objcopy.zip.args}
 
 ## Create uf2 file
 #recipe.objcopy.uf2.pattern=python "{runtime.platform.path}/tools/uf2conv/uf2conv.py" -f 0xADA52840 -c -o "{build.path}/{build.project_name}.uf2" "{build.path}/{build.project_name}.hex"
 recipe.objcopy.uf2.pattern=python "{runtime.platform.path}/tools/uf2conv/uf2_wrap.py" "{runtime.platform.path}/tools/uf2conv/uf2conv.py" "{build.board}" "{build.path}" "{build.source.path}" "{build.project_name}"
+#new
+#recipe.objcopy.uf2.pattern=python "{runtime.platform.path}/tools/uf2conv/uf2conv.py" -f {build.uf2_family} -c -o "{build.path}/{build.project_name}.uf2" "{build.path}/{build.project_name}.hex"
 
 ## Save bin
 recipe.output.tmp_file_bin={build.project_name}.bin
@@ -129,25 +133,27 @@ recipe.size.regex.data=^(?:\.data|\.bss)\s+([0-9]+).*
 recipe.output.tmp_file={build.project_name}.hex
 recipe.output.save_file={build.project_name}.{build.variant}.hex
 
-#***************************************************
+# ------------------------------------------------
 # adafruit-nrfutil for uploading
 # https://github.com/adafruit/Adafruit_nRF52_nrfutil
 # pre-built binaries are provided for macos and windows
-#***************************************************
+# ------------------------------------------------
 tools.nrfutil.cmd=adafruit-nrfutil
 tools.nrfutil.cmd.windows={runtime.platform.path}/tools/adafruit-nrfutil/win32/adafruit-nrfutil.exe
 tools.nrfutil.cmd.macosx={runtime.platform.path}/tools/adafruit-nrfutil/macos/adafruit-nrfutil
 
 tools.nrfutil.upload.params.verbose=--verbose
 tools.nrfutil.upload.params.quiet=
-tools.nrfutil.upload.pattern="{cmd}" {upload.verbose} dfu serial -pkg "{build.path}/{build.project_name}.zip" -p {serial.port} -b 115200 --singlebank
+tools.nrfutil.upload.args={upload.verbose} dfu serial -pkg "{build.path}/{build.project_name}.zip" -p {serial.port} -b 115200 --singlebank
+tools.nrfutil.upload.pattern="{cmd}" {tools.nrfutil.upload.args}
+tools.nrfutil.upload.pattern.macosx=env LANG=C.UTF-8 LC_ALL=C.UTF-8 "{tools.nrfutil.cmd}" {tools.nrfutil.upload.args}
 
-#***************************************************
+# ---------------------------------------------------
 # Burning bootloader with either jlink or nrfutil
-#***************************************************
+# ---------------------------------------------------
 
 # Bootloader version
-tools.bootburn.bootloader.file={runtime.platform.path}/bootloader/{build.variant}/{build.variant}_bootloader-0.6.2_{build.sd_name}_{build.sd_version}
+tools.bootburn.bootloader.file={runtime.platform.path}/bootloader/{build.variant}/{build.variant}_bootloader-0.9.1_{build.sd_name}_{build.sd_version}
 
 tools.bootburn.bootloader.params.verbose=
 tools.bootburn.bootloader.params.quiet=
@@ -158,3 +164,26 @@ tools.bootburn.erase.params.verbose=
 tools.bootburn.erase.params.quiet=
 tools.bootburn.erase.pattern=
 
+# ----------------------------------------
+# Debugger configuration (general options)
+# ----------------------------------------
+# EXPERIMENTAL feature:
+#  - this is alpha and may be subject to change without notice
+debug.executable={build.path}/{build.project_name}.elf
+debug.toolchain=gcc
+debug.toolchain.path={runtime.tools.arm-none-eabi-gcc.path}/bin/
+debug.toolchain.prefix=arm-none-eabi-
+
+debug.server=openocd
+debug.server.openocd.path={runtime.tools.openocd-0.11.0-arduino2.path}/bin/openocd
+debug.server.openocd.scripts_dir={runtime.tools.openocd-0.11.0-arduino2.path}/share/openocd/scripts/
+debug.server.openocd.script={runtime.platform.path}/{build.openocdscript}
+
+# JLinkServer is not supported by arduino-cli yet
+#   https://github.com/arduino/arduino-cli/blob/eca9d9a8f00582a08fadea8a4b7e3ef01b40d082/commands/debug/debug.go#L160
+# use debug_custom.json to run JLinkGDBServer instead
+#   https://docs.arduino.cc/tutorials/mkr-wifi-1010/mkr-jlink-setup
+#debug.server=jlink
+#debug.server.jlink.path=JLinkGDBServer
+#debug.server.jlink.device=nrf52840_xxaa
+#debug.server.jlink.script={runtime.platform.path}/{build.openocdscript}

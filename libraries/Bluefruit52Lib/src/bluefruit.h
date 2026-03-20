@@ -37,7 +37,7 @@
 #define BLE_MAX_CONNECTION        20 // SD support up to 20 connections
 
 // Allocate more memory for GATT table for 840
-#ifdef NRF52840_XXAA
+#if defined(NRF52840_XXAA) || defined(NRF52833_XXAA)
   #define CFG_SD_ATTR_TABLE_SIZE    0x1000
 #else
   #define CFG_SD_ATTR_TABLE_SIZE    0xC00
@@ -62,6 +62,7 @@
 #include "services/BLEDfu.h"
 #include "services/BLEUart.h"
 #include "services/BLEBas.h"
+#include "services/BLEIas.h"
 #include "services/BLEBeacon.h"
 #include "services/BLEHidGeneric.h"
 #include "services/BLEHidAdafruit.h"
@@ -78,6 +79,7 @@
 #include "clients/BLEClientCts.h"
 #include "clients/BLEClientHidAdafruit.h"
 #include "clients/BLEClientBas.h"
+#include "clients/BLEClientIas.h"
 
 #include "utility/AdaCallback.h"
 #include "utility/bonding.h"

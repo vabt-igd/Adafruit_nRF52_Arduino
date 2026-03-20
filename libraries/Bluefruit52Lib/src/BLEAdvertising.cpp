@@ -42,7 +42,7 @@
 BLEAdvertisingData::BLEAdvertisingData(void)
 {
   _count = 0;
-  varclr(_data);
+  arrclr(_data);
 }
 
 bool BLEAdvertisingData::addData(uint8_t type, const void* data, uint8_t len)
@@ -242,7 +242,7 @@ bool BLEAdvertisingData::setData(uint8_t const * data, uint8_t count)
 void BLEAdvertisingData::clearData(void)
 {
   _count = 0;
-  varclr(_data);
+  arrclr(_data);
 }
 
 /*------------------------------------------------------------------*/
@@ -253,7 +253,7 @@ BLEAdvertising::BLEAdvertising(void)
   _hdl                 = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
   _type                = BLE_GAP_ADV_TYPE_CONNECTABLE_SCANNABLE_UNDIRECTED;
   _start_if_disconnect = true;
-  _runnning            = false;
+  _running            = false;
 
   _conn_mask           = 0;
 
@@ -315,9 +315,13 @@ void BLEAdvertising::setStopCallback(stop_callback_t fp)
   _stop_cb = fp;
 }
 
+void BLEAdvertising::setPeerAddress(const ble_gap_addr_t& peer_addr) {
+  _peer_addr = peer_addr;
+}
+
 bool BLEAdvertising::isRunning(void)
 {
-  return _runnning;
+  return _running;
 }
 
 bool BLEAdvertising::setBeacon(BLEBeacon& beacon)
@@ -335,11 +339,9 @@ void BLEAdvertising::restartOnDisconnect(bool enable)
   _start_if_disconnect = enable;
 }
 
-bool BLEAdvertising::_start(uint16_t interval, uint16_t timeout)
-{
+bool BLEAdvertising::_start(uint16_t interval, uint16_t timeout) {
   // ADV Params
-  ble_gap_adv_params_t adv_para =
-  {
+  ble_gap_adv_params_t adv_para = {
     .properties    = { .type = _type, .anonymous  = 0 },
     .p_peer_addr   = NULL                     , // Undirected advertisement
     .interval      = interval                 , // advertising interval (in units of 0.625 ms)
@@ -354,18 +356,36 @@ bool BLEAdvertising::_start(uint16_t interval, uint16_t timeout)
       // , .set_id, .scan_req_notification
   };
 
+  switch(_type) {
+    case BLE_GAP_ADV_TYPE_CONNECTABLE_NONSCANNABLE_DIRECTED_HIGH_DUTY_CYCLE:
+    case BLE_GAP_ADV_TYPE_CONNECTABLE_NONSCANNABLE_DIRECTED:
+    case BLE_GAP_ADV_TYPE_EXTENDED_CONNECTABLE_NONSCANNABLE_DIRECTED:
+    case BLE_GAP_ADV_TYPE_EXTENDED_NONCONNECTABLE_SCANNABLE_DIRECTED:
+    case BLE_GAP_ADV_TYPE_EXTENDED_NONCONNECTABLE_NONSCANNABLE_DIRECTED:
+      adv_para.p_peer_addr = &_peer_addr;
+      break;
+
+    default: break;
+  }
+
+  // stop first if current running since we may change advertising data/params
+  if (_running) {
+    sd_ble_gap_adv_stop(_hdl);
+  }
+
   // gap_adv long-live is required by SD v6
-  static ble_gap_adv_data_t gap_adv =
-  {
-      .adv_data      = { .p_data = _data, .len = _count },
-      .scan_rsp_data = { .p_data = Bluefruit.ScanResponse.getData(), .len = Bluefruit.ScanResponse.count() }
-  };
+  static ble_gap_adv_data_t gap_adv;
+  gap_adv.adv_data.p_data = _data;
+  gap_adv.adv_data.len = _count;
+  gap_adv.scan_rsp_data.p_data = Bluefruit.ScanResponse.getData();
+  gap_adv.scan_rsp_data.len = Bluefruit.ScanResponse.count();
+
   VERIFY_STATUS( sd_ble_gap_adv_set_configure(&_hdl, &gap_adv, &adv_para), false );
   VERIFY_STATUS( sd_ble_gap_tx_power_set(BLE_GAP_TX_POWER_ROLE_ADV, _hdl, Bluefruit.getTxPower() ), false );
   VERIFY_STATUS( sd_ble_gap_adv_start(_hdl, CONN_CFG_PERIPHERAL), false );
 
   Bluefruit._startConnLed(); // start blinking
-  _runnning        = true;
+  _running         = true;
   _active_interval = interval;
 
   _left_timeout -= min16(_left_timeout, timeout);
@@ -389,7 +409,7 @@ bool BLEAdvertising::stop(void)
 {
   VERIFY_STATUS( sd_ble_gap_adv_stop(_hdl), false);
 
-  _runnning = false;
+  _running = false;
   Bluefruit._stopConnLed(); // stop blinking
 
   return true;
@@ -411,7 +431,7 @@ void BLEAdvertising::_eventHandler(ble_evt_t* evt)
       {
         bitSet(_conn_mask, conn_hdl);
 
-        _runnning = false;
+        _running = false;
       }
     }
     break;
@@ -422,14 +442,14 @@ void BLEAdvertising::_eventHandler(ble_evt_t* evt)
         bitClear(_conn_mask, conn_hdl);
 
         // Auto start if enabled and not connected to any central
-        if ( !_runnning && _start_if_disconnect ) start(_stop_timeout);
+        if ( !_running && _start_if_disconnect ) start(_stop_timeout);
       }
     break;
 
     case BLE_GAP_EVT_ADV_SET_TERMINATED:
       if (evt->evt.gap_evt.params.adv_set_terminated.reason == BLE_GAP_EVT_ADV_SET_TERMINATED_REASON_TIMEOUT)
       {
-        _runnning = false;
+        _running = false;
 
         // If still advertising, it is only in slow mode --> blink normal
         Bluefruit.setConnLedInterval(CFG_ADV_BLINKY_INTERVAL);
@@ -465,4 +485,3 @@ void BLEAdvertising::_eventHandler(ble_evt_t* evt)
     default: break;
   }
 }
-

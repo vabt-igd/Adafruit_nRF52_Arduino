@@ -41,10 +41,10 @@
 #include <atomic>
 #include <cstdint>
 
-#ifdef NRF52840_XXAA
-#define HWPWM_MODULE_NUM    4
+#ifdef NRF_PWM3
+  #define HWPWM_MODULE_NUM    4
 #else
-#define HWPWM_MODULE_NUM    3
+  #define HWPWM_MODULE_NUM    3
 #endif
 
 class HardwarePWM
@@ -87,6 +87,9 @@ class HardwarePWM
 
     // Remove a pin from PWM module
     bool removePin  (uint8_t pin);
+
+    // Remove all pins from PWM module
+    bool removeAllPins (void);
 
     // Get the mapped channel of a pin
     int  pin2channel(uint8_t pin) const

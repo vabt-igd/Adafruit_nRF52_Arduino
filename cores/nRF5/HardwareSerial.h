@@ -49,7 +49,7 @@
 #ifdef NRF52832_XXAA
   #define SERIAL_8N1	(UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos)
   #define SERIAL_8E1	(UARTE_CONFIG_PARITY_Included << UARTE_CONFIG_PARITY_Pos)
-#elif defined(NRF52840_XXAA)
+#elif defined(NRF52840_XXAA) || defined(NRF52833_XXAA)
   #define SERIAL_8N1	((UARTE_CONFIG_STOP_One << UARTE_CONFIG_STOP_Pos) | (UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos))
   #define SERIAL_8N2	((UARTE_CONFIG_STOP_Two << UARTE_CONFIG_STOP_Pos) | (UARTE_CONFIG_PARITY_Excluded << UARTE_CONFIG_PARITY_Pos))
   #define SERIAL_8E1	((UARTE_CONFIG_STOP_One << UARTE_CONFIG_STOP_Pos) | (UARTE_CONFIG_PARITY_Included << UARTE_CONFIG_PARITY_Pos))
@@ -70,6 +70,7 @@ class HardwareSerial : public Stream
     virtual void flush(void) = 0;
     virtual size_t write(uint8_t) = 0;
     virtual size_t write(const uint8_t *buffer, size_t size) = 0;
+    virtual int availableForWrite(void);
     using Print::write; // pull in write(str) from Print
     virtual operator bool() = 0;
 };
